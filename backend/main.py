@@ -14,7 +14,7 @@ import uuid
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List
+from chunker import split_audio_chunks, merge_transcriptions, get_audio_duration, MAX_FILE_SIZE, MAX_DURATION, CHUNK_DURATION
 import asyncio
 from pydantic import BaseModel
 import numpy as np
@@ -204,6 +204,14 @@ async def transcribe_audio(
         # Save uploaded file
         with open(input_path, "wb") as f:
             content = await audio.read()
+            
+            # Check file size
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=413, 
+                    detail=f"File too large. Max {MAX_FILE_SIZE/1024/1024:.0f}MB allowed."
+                )
+            
             f.write(content)
         
         # Convert to WAV if needed
@@ -212,14 +220,49 @@ async def transcribe_audio(
         else:
             wav_path = input_path
         
-        # Load model and transcribe
+        # Check audio duration
+        duration = get_audio_duration(wav_path)
+        
+        if duration > MAX_DURATION:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Audio too long. Max {MAX_DURATION/60:.0f} minutes allowed."
+            )
+        
+        # Load model
         model = load_model(model_size)
         
-        result = model.transcribe(
-            str(wav_path),
-            language=language,
-            task="transcribe"
-        )
+        # Process long audio in chunks
+        if duration > CHUNK_DURATION:
+            print(f"Long audio detected ({duration:.0f}s). Processing in chunks...")
+            
+            # Split into chunks
+            chunks = split_audio_chunks(wav_path, UPLOAD_DIR, CHUNK_DURATION)
+            
+            # Transcribe each chunk
+            chunk_results = []
+            for i, chunk_path in enumerate(chunks):
+                print(f"Processing chunk {i+1}/{len(chunks)}...")
+                chunk_result = model.transcribe(
+                    str(chunk_path),
+                    language=language,
+                    task="transcribe"
+                )
+                chunk_results.append(chunk_result)
+                
+                # Clean up chunk
+                if chunk_path != wav_path:
+                    chunk_path.unlink()
+            
+            # Merge results
+            result = merge_transcriptions(chunk_results)
+        else:
+            # Process normally for short audio
+            result = model.transcribe(
+                str(wav_path),
+                language=language,
+                task="transcribe"
+            )
         
         # Calculate confidence
         segments = result.get("segments", [])
@@ -247,11 +290,12 @@ async def transcribe_audio(
             "translation": translation,
             "language": language,
             "language_name": "Telugu" if language == "te" else "Sanskrit",
-            "duration": duration,
+            "duration": result.get("duration", duration),  # Use original duration
             "confidence": round(confidence, 2),
             "created_at": datetime.now().isoformat(),
             "model": f"whisper-{model_size}",
-            "filename": audio.filename
+            "filename": audio.filename,
+            "chunks_processed": len(chunks) if duration > CHUNK_DURATION else 1
         }
         
         transcript_path = TRANSCRIPTS_DIR / f"{transcription_id}.json"
