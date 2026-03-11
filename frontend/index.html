@@ -172,15 +172,32 @@
                     </div>
 
                     <!-- Model Selection -->
-                    <div class="mb-8">
-                        <label class="block text-sm font-semibold text-slate-700 mb-3">AI Model Quality</label>
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">AI Model</label>
                         <select id="model-size" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition">
                             <option value="tiny">Tiny - Fastest (39MB)</option>
                             <option value="base">Base - Balanced (74MB)</option>
-                            <option value="small" selected>Small - Recommended (244MB)</option>
-                            <option value="medium">Medium - High Quality (769MB)</option>
+                            <option value="small">Small - Good Quality (244MB)</option>
+                            <option value="medium">Medium - Better Quality (769MB)</option>
+                            <option value="large" selected>Large - Best Quality (1.5GB) ⭐ Recommended</option>
                         </select>
-                        <p class="text-xs text-slate-500 mt-2">Larger models = better accuracy but slower processing</p>
+                        <p class="text-xs text-slate-500 mt-2">Large model provides best accuracy for Indian languages</p>
+                    </div>
+
+                    <!-- Translation Option -->
+                    <div class="mb-6">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="enable-translation" class="w-5 h-5 text-orange-500 rounded focus:ring-orange-500" onchange="toggleTranslation()">
+                            <span class="text-sm font-semibold text-slate-700">Enable Live Translation</span>
+                        </label>
+                        
+                        <div id="translation-options" class="hidden mt-3 pl-8">
+                            <select id="translate-to" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition">
+                                <option value="en">Translate to English</option>
+                                <option value="hi">Translate to Hindi</option>
+                                <option value="te">Translate to Telugu</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Submit Button -->
@@ -238,6 +255,20 @@
                         <label class="block text-sm font-semibold text-slate-700 mb-3">Transcription</label>
                         <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
                             <p id="transcription-text" class="text-lg leading-relaxed text-slate-800 font-telugu"></p>
+                        </div>
+                    </div>
+
+                    <!-- Translation (Hidden by default) -->
+                    <div id="translation-section" class="hidden mb-6">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                            </svg>
+                            Translation
+                        </label>
+                        <div class="bg-orange-50 border border-orange-200 rounded-xl p-6">
+                            <p id="translation-text" class="text-lg leading-relaxed text-slate-800"></p>
+                            <p id="translation-lang" class="text-xs text-orange-600 mt-2"></p>
                         </div>
                     </div>
 
@@ -426,6 +457,11 @@
             formData.append('audio', currentFile);
             formData.append('language', document.getElementById('language').value);
             formData.append('model_size', document.getElementById('model-size').value);
+            
+            // Add translation if enabled
+            if (document.getElementById('enable-translation').checked) {
+                formData.append('translate_to', document.getElementById('translate-to').value);
+            }
 
             try {
                 // Simulate progress
@@ -478,10 +514,30 @@
             document.getElementById('results-section').classList.remove('hidden');
             document.getElementById('transcription-text').textContent = result.text;
             document.getElementById('confidence-badge').textContent = `${result.confidence}% confidence`;
-            document.getElementById('result-meta').textContent = `${result.language === 'te' ? 'Telugu' : 'Sanskrit'} • ${result.duration.toFixed(1)}s`;
+            document.getElementById('result-meta').textContent = `${result.language === 'te' ? 'Telugu' : 'Sanskrit'} • ${result.duration.toFixed(1)}s • Whisper Large`;
+            
+            // Show translation if available
+            if (result.translation) {
+                document.getElementById('translation-section').classList.remove('hidden');
+                document.getElementById('translation-text').textContent = result.translation;
+                const langNames = { 'en': 'English', 'hi': 'Hindi', 'te': 'Telugu' };
+                document.getElementById('translation-lang').textContent = `Translated to ${langNames[document.getElementById('translate-to').value] || 'English'}`;
+            } else {
+                document.getElementById('translation-section').classList.add('hidden');
+            }
             
             // Scroll to results
             document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function toggleTranslation() {
+            const checkbox = document.getElementById('enable-translation');
+            const options = document.getElementById('translation-options');
+            if (checkbox.checked) {
+                options.classList.remove('hidden');
+            } else {
+                options.classList.add('hidden');
+            }
         }
 
         async function downloadResult(format) {

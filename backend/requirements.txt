@@ -8,6 +8,10 @@ torchaudio==2.1.0
 pydantic==2.5.0
 python-dotenv==1.0.0
 
+# Translation support
+transformers==4.35.0
+sentencepiece==0.1.99
+sacremoses==0.0.53
+
 # Optional: For IndicWav2Vec support (future)
-# transformers==4.35.0
 # accelerate==0.24.0

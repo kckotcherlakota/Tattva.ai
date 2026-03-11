@@ -1,7 +1,7 @@
 # Tatva.ai - Backend API
-# FastAPI application for Telugu & Sanskrit ASR
+# FastAPI application for Telugu & Sanskrit ASR with Translation
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,15 +14,24 @@ import uuid
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import asyncio
 from pydantic import BaseModel
+import numpy as np
+
+# Try to import translation libraries
+try:
+    from transformers import pipeline
+    TRANSLATION_AVAILABLE = True
+except ImportError:
+    TRANSLATION_AVAILABLE = False
+    print("Warning: Transformers not installed. Translation features limited.")
 
 # App configuration
 app = FastAPI(
     title="Tatva.ai API",
-    description="Audio-to-Text for Telugu & Sanskrit",
-    version="1.0.0"
+    description="Audio-to-Text for Telugu & Sanskrit with Live Translation",
+    version="2.0.0"
 )
 
 # CORS for frontend
@@ -42,53 +51,135 @@ TRANSCRIPTS_DIR.mkdir(exist_ok=True)
 
 # Model cache
 models = {}
+translation_pipelines = {}
 
-def load_model(model_size: str = "small"):
+def load_model(model_size: str = "large"):  # Changed default to "large"
     """Load Whisper model (cached)"""
     if model_size not in models:
         print(f"Loading Whisper {model_size} model...")
         models[model_size] = whisper.load_model(model_size)
+        print(f"Model {model_size} loaded successfully!")
     return models[model_size]
 
+def load_translation_pipeline(source_lang: str, target_lang: str):
+    """Load translation pipeline for language pair"""
+    if not TRANSLATION_AVAILABLE:
+        return None
+    
+    pair_key = f"{source_lang}-{target_lang}"
+    if pair_key not in translation_pipelines:
+        try:
+            # Use Facebook's M2M100 model for multilingual translation
+            translation_pipelines[pair_key] = pipeline(
+                "translation",
+                model="facebook/m2m100_418M",
+                src_lang=source_lang,
+                tgt_lang=target_lang
+            )
+        except Exception as e:
+            print(f"Error loading translation pipeline: {e}")
+            return None
+    return translation_pipelines.get(pair_key)
+
 class TranscriptionRequest(BaseModel):
-    language: str = "te"  # te for Telugu, sa for Sanskrit
-    model_size: str = "small"  # tiny, base, small, medium
+    language: str = "te"
+    model_size: str = "large"  # Default to large for best accuracy
+    translate_to: Optional[str] = None  # Optional: en, hi, etc.
     
 class TranscriptionResponse(BaseModel):
     id: str
     text: str
+    translation: Optional[str] = None
     language: str
     duration: float
     confidence: float
     created_at: str
+
+class TranslationRequest(BaseModel):
+    text: str
+    source_lang: str
+    target_lang: str
+
+class TranslationResponse(BaseModel):
+    original: str
+    translated: str
+    source_lang: str
+    target_lang: str
 
 @app.get("/")
 async def root():
     return {
         "name": "Tatva.ai",
         "tagline": "Giving Voice to Ancient Wisdom",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "languages": ["te", "sa"],
+        "features": ["transcription", "translation", "live-streaming"],
+        "models": ["tiny", "base", "small", "medium", "large"],
         "status": "operational"
     }
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    return {
+        "status": "healthy",
+        "models_loaded": list(models.keys()),
+        "translation_available": TRANSLATION_AVAILABLE,
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/translate", response_model=TranslationResponse)
+async def translate_text(request: TranslationRequest):
+    """
+    Translate text between languages
+    
+    - **text**: Text to translate
+    - **source_lang**: Source language code (te, sa, en, hi)
+    - **target_lang**: Target language code (en, hi, te, sa)
+    """
+    if not TRANSLATION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Translation service not available")
+    
+    try:
+        # Map language codes for M2M100
+        lang_map = {
+            "te": "te", "sa": "sa", "en": "en", "hi": "hi"
+        }
+        
+        src = lang_map.get(request.source_lang, request.source_lang)
+        tgt = lang_map.get(request.target_lang, request.target_lang)
+        
+        translator = load_translation_pipeline(src, tgt)
+        if not translator:
+            raise HTTPException(status_code=500, detail="Failed to load translation model")
+        
+        result = translator(request.text, max_length=512)
+        translated_text = result[0]["translation_text"] if result else ""
+        
+        return TranslationResponse(
+            original=request.text,
+            translated=translated_text,
+            source_lang=request.source_lang,
+            target_lang=request.target_lang
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 @app.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(
     background_tasks: BackgroundTasks,
     audio: UploadFile = File(...),
     language: str = "te",
-    model_size: str = "small"
+    model_size: str = "large",  # Default to large
+    translate_to: Optional[str] = None
 ):
     """
-    Transcribe audio file to text
+    Transcribe audio file to text with optional translation
     
     - **audio**: Audio file (wav, mp3, m4a, ogg)
     - **language**: "te" for Telugu, "sa" for Sanskrit
-    - **model_size**: tiny, base, small, medium, large
+    - **model_size**: tiny, base, small, medium, **large** (recommended)
+    - **translate_to**: Optional target language for translation (en, hi)
     """
     
     # Validate language
@@ -130,18 +221,30 @@ async def transcribe_audio(
             task="transcribe"
         )
         
-        # Calculate confidence (avg logprob)
+        # Calculate confidence
         segments = result.get("segments", [])
         avg_confidence = sum(s.get("avg_logprob", -1) for s in segments) / len(segments) if segments else 0
-        confidence = min(max((avg_confidence + 1) / 2 * 100, 0), 100)  # Normalize to 0-100
+        confidence = min(max((avg_confidence + 1) / 2 * 100, 0), 100)
         
         # Get audio duration
         duration = result.get("duration", 0)
+        
+        # Optional translation
+        translation = None
+        if translate_to and TRANSLATION_AVAILABLE:
+            try:
+                translator = load_translation_pipeline(language, translate_to)
+                if translator:
+                    trans_result = translator(result["text"], max_length=512)
+                    translation = trans_result[0]["translation_text"] if trans_result else None
+            except Exception as e:
+                print(f"Translation error: {e}")
         
         # Save transcript
         transcript_data = {
             "id": transcription_id,
             "text": result["text"],
+            "translation": translation,
             "language": language,
             "language_name": "Telugu" if language == "te" else "Sanskrit",
             "duration": duration,
@@ -161,6 +264,7 @@ async def transcribe_audio(
         return TranscriptionResponse(
             id=transcription_id,
             text=result["text"],
+            translation=translation,
             language=language,
             duration=duration,
             confidence=round(confidence, 2),
@@ -174,6 +278,67 @@ async def transcribe_audio(
         if wav_path.exists() and wav_path != input_path:
             wav_path.unlink()
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+# WebSocket for live transcription
+@app.websocket("/ws/transcribe")
+async def websocket_transcribe(websocket: WebSocket):
+    """WebSocket endpoint for live audio streaming and transcription"""
+    await websocket.accept()
+    
+    try:
+        # Load large model for best live transcription
+        model = load_model("large")
+        
+        audio_buffer = []
+        
+        while True:
+            # Receive audio chunks
+            message = await websocket.receive_text()
+            data = json.loads(message)
+            
+            if data.get("action") == "start":
+                language = data.get("language", "te")
+                await websocket.send_json({"status": "started", "language": language})
+                
+            elif data.get("action") == "chunk":
+                # Process audio chunk
+                chunk = np.array(data.get("audio", []))
+                audio_buffer.extend(chunk)
+                
+                # Process every 3 seconds of audio
+                if len(audio_buffer) >= 48000 * 3:  # 3 seconds at 16kHz
+                    audio_array = np.array(audio_buffer[:48000 * 3])
+                    
+                    # Transcribe chunk
+                    result = model.transcribe(audio_array, language=language, fp16=False)
+                    
+                    await websocket.send_json({
+                        "type": "partial",
+                        "text": result["text"],
+                        "is_final": False
+                    })
+                    
+                    # Keep last 0.5 seconds for context
+                    audio_buffer = audio_buffer[-2400:]
+                    
+            elif data.get("action") == "stop":
+                # Final transcription
+                if audio_buffer:
+                    audio_array = np.array(audio_buffer)
+                    result = model.transcribe(audio_array, language=language, fp16=False)
+                    
+                    await websocket.send_json({
+                        "type": "final",
+                        "text": result["text"],
+                        "is_final": True
+                    })
+                    
+                audio_buffer = []
+                
+    except Exception as e:
+        await websocket.send_json({"error": str(e)})
+    finally:
+        await websocket.close()
 
 async def convert_to_wav(input_path: Path, output_path: Path):
     """Convert audio to 16kHz mono WAV using torchaudio"""
@@ -222,11 +387,7 @@ async def get_transcript(transcription_id: str):
 
 @app.get("/transcript/{transcription_id}/download")
 async def download_transcript(transcription_id: str, format: str = "txt"):
-    """
-    Download transcription
-    
-    - **format**: txt, json, srt (subtitles)
-    """
+    """Download transcription"""
     transcript_path = TRANSCRIPTS_DIR / f"{transcription_id}.json"
     
     if not transcript_path.exists():
@@ -252,7 +413,13 @@ Created: {data['created_at']}
 
 TRANSCRIPTION:
 {data['text']}
+
 """
+        if data.get('translation'):
+            text_content += f"""TRANSLATION:
+{data['translation']}
+"""
+        
         txt_path = TRANSCRIPTS_DIR / f"{transcription_id}.txt"
         with open(txt_path, "w", encoding="utf-8") as f:
             f.write(text_content)
@@ -264,7 +431,6 @@ TRANSCRIPTION:
         )
     
     elif format == "srt":
-        # Generate SRT subtitles if segments available
         srt_content = generate_srt(data)
         srt_path = TRANSCRIPTS_DIR / f"{transcription_id}.srt"
         with open(srt_path, "w", encoding="utf-8") as f:
@@ -281,7 +447,6 @@ TRANSCRIPTION:
 
 def generate_srt(data: dict) -> str:
     """Generate SRT subtitle format"""
-    # This would need segment data stored - simplified version
     return f"""1
 00:00:00,000 --> 00:00:05,000
 {data['text'][:100]}...
@@ -301,6 +466,7 @@ async def get_history(limit: int = 10):
                 "id": data["id"],
                 "language": data["language_name"],
                 "preview": data["text"][:100] + "..." if len(data["text"]) > 100 else data["text"],
+                "translation_preview": data.get("translation", "")[:50] + "..." if data.get("translation") else None,
                 "created_at": data["created_at"],
                 "duration": data["duration"]
             })
@@ -324,10 +490,6 @@ async def delete_transcript(transcription_id: str):
         raise HTTPException(status_code=404, detail="Transcription not found")
     
     return {"message": "Transcription deleted"}
-
-# Serve frontend static files (production)
-if Path("../frontend/dist").exists():
-    app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
