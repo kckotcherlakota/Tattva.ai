@@ -174,24 +174,46 @@ async def transcribe_audio(
     translate_to: Optional[str] = None
 ):
     """
-    Transcribe audio file to text with optional translation
+    Transcribe AUDIO file to text with optional translation
     
-    - **audio**: Audio file (wav, mp3, m4a, ogg)
+    - **audio**: Audio file ONLY (mp3, wav, m4a, ogg, flac, aac)
     - **language**: "te" for Telugu, "sa" for Sanskrit
     - **model_size**: tiny, base, small, medium, **large** (recommended)
     - **translate_to**: Optional target language for translation (en, hi)
+    
+    **Limits:**
+    - Max file size: 500MB
+    - Max duration: 60 minutes (1 hour)
+    - Video files NOT supported
     """
     
     # Validate language
     if language not in ["te", "sa"]:
         raise HTTPException(status_code=400, detail="Language must be 'te' (Telugu) or 'sa' (Sanskrit)")
     
-    # Validate file type
-    allowed_types = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "audio/mp4", "audio/x-m4a", "audio/ogg"]
-    file_ext = Path(audio.filename).suffix.lower()
+    # Validate file type - AUDIO ONLY
+    allowed_types = [
+        "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", 
+        "audio/mp4", "audio/x-m4a", "audio/ogg", "audio/flac",
+        "audio/aac", "audio/webm", "audio/opus"
+    ]
     
-    if audio.content_type not in allowed_types and file_ext not in [".wav", ".mp3", ".m4a", ".ogg", ".mp4"]:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {audio.content_type}")
+    # Reject video files
+    video_types = ["video/mp4", "video/avi", "video/mkv", "video/mov", "video/webm"]
+    if audio.content_type in video_types:
+        raise HTTPException(
+            status_code=400, 
+            detail="Video files not supported. Please extract audio first (MP3, WAV, M4A, OGG only)."
+        )
+    
+    file_ext = Path(audio.filename).suffix.lower()
+    allowed_exts = [".wav", ".mp3", ".m4a", ".ogg", ".flac", ".aac", ".webm", ".opus"]
+    
+    if audio.content_type not in allowed_types and file_ext not in allowed_exts:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type: {audio.content_type}. Audio files only (MP3, WAV, M4A, OGG, FLAC)."
+        )
     
     # Generate unique ID
     transcription_id = str(uuid.uuid4())[:8]
