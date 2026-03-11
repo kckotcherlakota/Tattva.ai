@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tatva.ai - Audio to Text for Telugu & Sanskrit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Telugu&family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-telugu { font-family: 'Noto Sans Telugu', sans-serif; }
+        .font-sanskrit { font-family: 'Noto Sans Devanagari', sans-serif; }
+        
+        /* Gradient animation */
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+        
+        /* Wave animation for recording */
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+        .wave-bar {
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        /* Smooth transitions */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <!-- Logo -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 via-red-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                            त
+                        </div>
+                        <div>
+                            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-purple-600">
+                                Tatva.ai
+                            </span>
+                            <p class="text-xs text-slate-500 -mt-1">Giving Voice to Ancient Wisdom</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#features" class="hidden sm:block text-slate-600 hover:text-slate-900 font-medium transition">Features</a>
+                    <a href="#about" class="hidden sm:block text-slate-600 hover:text-slate-900 font-medium transition">About</a>
+                    <button onclick="scrollToTranscribe()" class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-5 py-2 rounded-full font-medium hover:shadow-lg hover:scale-105 transition transform">
+                        Try Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden py-20 sm:py-32">
+        <div class="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-purple-50 animate-gradient"></div>
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\\'60\\' height=\\'60\\' viewBox=\\'0 0 60 60\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%23f97316\\' fill-opacity=\\'0.05\\'%3E%3Cpath d=\\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+        
+        <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl sm:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+                Transform Audio into
+                <span class="block bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-red-500 to-purple-600">
+                    Timeless Text
+                </span>
+            </h1>
+            <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-10">
+                The most accurate speech-to-text for <span class="font-telugu font-medium text-orange-600">తెలుగు</span> and <span class="font-sanskrit font-medium text-purple-600">संस्कृतम्</span>. 
+                Powered by advanced AI.
+            </p>
+            
+            <!-- Language Pills -->
+            <div class="flex justify-center space-x-4 mb-12">
+                <div class="bg-white px-6 py-3 rounded-full shadow-md border border-orange-100 flex items-center space-x-2">
+                    <span class="text-2xl">🇮🇳</span>
+                    <span class="font-telugu text-lg font-medium text-slate-700">తెలుగు</span>
+                    <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">Telugu</span>
+                </div>
+                <div class="bg-white px-6 py-3 rounded-full shadow-md border border-purple-100 flex items-center space-x-2">
+                    <span class="text-2xl">🕉️</span>
+                    <span class="font-sanskrit text-lg font-medium text-slate-700">संस्कृतम्</span>
+                    <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Sanskrit</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main App Section -->
+    <section id="transcribe" class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                        </svg>
+                        Audio Transcription
+                    </h2>
+                    <p class="text-slate-400 mt-1">Upload audio or record directly in your browser</p>
+                </div>
+
+                <div class="p-8">
+                    <!-- Language Selection -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">Select Language</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="selectLanguage('te')" id="btn-te" class="lang-btn p-4 rounded-xl border-2 border-orange-200 bg-orange-50 text-center hover:border-orange-400 transition active">
+                                <span class="block font-telugu text-2xl mb-1">తెలుగు</span>
+                                <span class="text-sm text-slate-600">Telugu</span>
+                            </button>
+                            <button onclick="selectLanguage('sa')" id="btn-sa" class="lang-btn p-4 rounded-xl border-2 border-slate-200 text-center hover:border-purple-400 hover:bg-purple-50 transition">
+                                <span class="block font-sanskrit text-2xl mb-1">संस्कृतम्</span>
+                                <span class="text-sm text-slate-600">Sanskrit</span>
+                                <span class="inline-block mt-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Beta</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="language" value="te">
+                    </div>
+
+                    <!-- Upload Area -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">Upload Audio</label>
+                        <div 
+                            id="drop-zone"
+                            class="border-3 border-dashed border-slate-300 rounded-2xl p-12 text-center hover:border-orange-400 hover:bg-orange-50 transition cursor-pointer"
+                            onclick="document.getElementById('audio-input').click()"
+                            ondrop="handleDrop(event)"
+                            ondragover="handleDragOver(event)"
+                            ondragleave="handleDragLeave(event)"
+                        >
+                            <div id="upload-prompt">
+                                <svg class="w-16 h-16 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-lg text-slate-700 font-medium mb-2">Drop your audio file here</p>
+                                <p class="text-sm text-slate-500">or click to browse</p>
+                                <p class="text-xs text-slate-400 mt-2">Supports: MP3, WAV, M4A, OGG (max 25MB)</p>
+                            </div>
+                            <div id="file-selected" class="hidden">
+                                <svg class="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p id="filename" class="text-lg text-slate-700 font-medium"></p>
+                                <p class="text-sm text-slate-500 mt-1">Click to change file</p>
+                            </div>
+                        </div>
+                        <input type="file" id="audio-input" accept="audio/*" class="hidden" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">AI Model Quality</label>
+                        <select id="model-size" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition">
+                            <option value="tiny">Tiny - Fastest (39MB)</option>
+                            <option value="base">Base - Balanced (74MB)</option>
+                            <option value="small" selected>Small - Recommended (244MB)</option>
+                            <option value="medium">Medium - High Quality (769MB)</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-2">Larger models = better accuracy but slower processing</p>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button 
+                        onclick="transcribe()" 
+                        id="transcribe-btn"
+                        class="w-full bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition transform disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span id="btn-text">Start Transcription</span>
+                        <svg id="btn-spinner" class="hidden w-5 h-5 ml-2 inline animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Progress Bar -->
+                    <div id="progress-container" class="hidden mt-6">
+                        <div class="flex justify-between text-sm text-slate-600 mb-2">
+                            <span id="progress-text">Uploading...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div id="progress-bar" class="bg-gradient-to-r from-orange-500 to-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results-section" class="hidden py-16 bg-slate-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden fade-in">
+                <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg class="w-8 h-8 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Transcription Complete!</h3>
+                                <p id="result-meta" class="text-green-100 text-sm"></p>
+                            </div>
+                        </div>
+                        <div id="confidence-badge" class="bg-white/20 backdrop-blur px-4 py-2 rounded-full text-white font-semibold">
+                            95% confidence
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <!-- Transcription Text -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">Transcription</label>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                            <p id="transcription-text" class="text-lg leading-relaxed text-slate-800 font-telugu"></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="downloadResult('txt')" class="flex-1 sm:flex-none bg-slate-800 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-900 transition flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Download TXT
+                        </button>
+                        <button onclick="downloadResult('json')" class="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-200 transition flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                            JSON
+                        </button>
+                        <button onclick="copyToClipboard()" class="flex-1 sm:flex-none bg-orange-100 text-orange-700 px-6 py-3 rounded-xl font-medium hover:bg-orange-200 transition flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Copy Text
+                        </button>
+                        <button onclick="resetForm()" class="flex-1 sm:flex-none border-2 border-slate-300 text-slate-600 px-6 py-3 rounded-xl font-medium hover:border-slate-400 hover:text-slate-800 transition">
+                            New Transcription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Why Tatva.ai?</h2>
+                <p class="text-lg text-slate-600 max-w-2xl mx-auto">Built specifically for Indian languages with state-of-the-art AI</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-slate-50 rounded-2xl p-8 hover:shadow-lg transition">
+                    <div class="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center text-white mb-6">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">High Accuracy</h3>
+                    <p class="text-slate-600">Fine-tuned on thousands of hours of Telugu and Sanskrit audio for industry-leading transcription quality.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="bg-slate-50 rounded-2xl p-8 hover:shadow-lg transition">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center text-white mb-6">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Lightning Fast</h3>
+                    <p class="text-slate-600">Transcribe hours of audio in minutes. Optimized for speed without compromising accuracy.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-slate-50 rounded-2xl p-8 hover:shadow-lg transition">
+                    <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-white mb-6">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Privacy First</h3>
+                    <p class="text-slate-600">Your audio files are processed securely and automatically deleted after transcription.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-3 mb-6 md:mb-0">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                        त
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold">Tatva.ai</span>
+                        <p class="text-slate-400 text-sm">Giving Voice to Ancient Wisdom</p>
+                    </div>
+                </div>
+                <div class="flex space-x-6 text-sm text-slate-400">
+                    <a href="#" class="hover:text-white transition">Privacy</a>
+                    <a href="#" class="hover:text-white transition">Terms</a>
+                    <a href="#" class="hover:text-white transition">API</a>
+                    <a href="#" class="hover:text-white transition">Contact</a>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
+                <p>&copy; 2025 Tatva.ai. Built with ❤️ for Indian languages.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        const API_URL = window.location.origin.includes('localhost') 
+            ? 'http://localhost:8000' 
+            : window.location.origin;
+        
+        let currentFile = null;
+        let currentTranscriptionId = null;
+
+        function selectLanguage(lang) {
+            document.getElementById('language').value = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('border-orange-400', 'bg-orange-50', 'border-purple-400', 'bg-purple-50');
+                btn.classList.add('border-slate-200');
+            });
+            
+            const btn = document.getElementById(`btn-${lang}`);
+            if (lang === 'te') {
+                btn.classList.remove('border-slate-200');
+                btn.classList.add('border-orange-400', 'bg-orange-50');
+            } else {
+                btn.classList.remove('border-slate-200');
+                btn.classList.add('border-purple-400', 'bg-purple-50');
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) setFile(file);
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const file = event.dataTransfer.files[0];
+            if (file && file.type.startsWith('audio/')) {
+                setFile(file);
+            }
+            document.getElementById('drop-zone').classList.remove('border-orange-400', 'bg-orange-50');
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            document.getElementById('drop-zone').classList.add('border-orange-400', 'bg-orange-50');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            document.getElementById('drop-zone').classList.remove('border-orange-400', 'bg-orange-50');
+        }
+
+        function setFile(file) {
+            currentFile = file;
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('file-selected').classList.remove('hidden');
+            document.getElementById('filename').textContent = file.name;
+        }
+
+        function scrollToTranscribe() {
+            document.getElementById('transcribe').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function transcribe() {
+            if (!currentFile) {
+                alert('Please select an audio file first');
+                return;
+            }
+
+            const btn = document.getElementById('transcribe-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('btn-spinner');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percent');
+
+            // Disable button
+            btn.disabled = true;
+            btnText.textContent = 'Processing...';
+            spinner.classList.remove('hidden');
+            progressContainer.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('audio', currentFile);
+            formData.append('language', document.getElementById('language').value);
+            formData.append('model_size', document.getElementById('model-size').value);
+
+            try {
+                // Simulate progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    progressBar.style.width = `${progress}%`;
+                    progressPercent.textContent = `${Math.round(progress)}%`;
+                    
+                    if (progress < 30) progressText.textContent = 'Uploading audio...';
+                    else if (progress < 60) progressText.textContent = 'Processing with AI...';
+                    else progressText.textContent = 'Transcribing...';
+                }, 1000);
+
+                const response = await fetch(`${API_URL}/transcribe`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Transcription failed');
+                }
+
+                const result = await response.json();
+                currentTranscriptionId = result.id;
+
+                // Show results
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+                
+                setTimeout(() => {
+                    showResults(result);
+                }, 500);
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Start Transcription';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function showResults(result) {
+            document.getElementById('results-section').classList.remove('hidden');
+            document.getElementById('transcription-text').textContent = result.text;
+            document.getElementById('confidence-badge').textContent = `${result.confidence}% confidence`;
+            document.getElementById('result-meta').textContent = `${result.language === 'te' ? 'Telugu' : 'Sanskrit'} • ${result.duration.toFixed(1)}s`;
+            
+            // Scroll to results
+            document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function downloadResult(format) {
+            if (!currentTranscriptionId) return;
+            
+            const response = await fetch(`${API_URL}/transcript/${currentTranscriptionId}/download?format=${format}`);
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tatvai_${currentTranscriptionId}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        }
+
+        async function copyToClipboard() {
+            const text = document.getElementById('transcription-text').textContent;
+            await navigator.clipboard.writeText(text);
+            
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!`;
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+
+        function resetForm() {
+            currentFile = null;
+            currentTranscriptionId = null;
+            document.getElementById('audio-input').value = '';
+            document.getElementById('upload-prompt').classList.remove('hidden');
+            document.getElementById('file-selected').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('results-section').classList.add('hidden');
+            scrollToTranscribe();
+        }
+    </script>
+</body>
+</html>
