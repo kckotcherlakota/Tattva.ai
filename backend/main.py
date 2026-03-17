@@ -27,12 +27,24 @@ except ImportError:
     TRANSLATION_AVAILABLE = False
     print("Warning: Transformers not installed. Translation features limited.")
 
+# Try to import Gmail integration
+try:
+    from gmail_integration import router as gmail_router
+    GMAIL_AVAILABLE = True
+except ImportError:
+    GMAIL_AVAILABLE = False
+    print("Warning: Gmail integration not available. Install with: pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib")
+
 # App configuration
 app = FastAPI(
     title="Tatva.ai API",
-    description="Audio-to-Text for Telugu & Sanskrit with Live Translation",
-    version="2.0.0"
+    description="Audio-to-Text for Telugu & Sanskrit with Live Translation and Gmail Integration",
+    version="2.1.0"
 )
+
+# Include Gmail router if available
+if GMAIL_AVAILABLE:
+    app.include_router(gmail_router)
 
 # CORS for frontend
 app.add_middleware(

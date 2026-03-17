@@ -38,7 +38,9 @@ logs/
 .env
 .env.local
 
-# Build
-dist/
+# Google Cloud / Gmail credentials
+credentials.json
+token.json
+email_attachments/
 build/
 *.egg-info/

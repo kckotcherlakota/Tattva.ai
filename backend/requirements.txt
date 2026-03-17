@@ -13,5 +13,10 @@ transformers==4.35.0
 sentencepiece==0.1.99
 sacremoses==0.0.53
 
+# Gmail Integration
+google-api-python-client==2.108.0
+google-auth-httplib2==0.1.1
+google-auth-oauthlib==1.1.0
+
 # Optional: For IndicWav2Vec support (future)
 # accelerate==0.24.0
